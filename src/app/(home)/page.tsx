@@ -73,9 +73,8 @@ export default function Home() {
         </div>
 
         {/* Content Sections */}
-     
         <div className="relative z-10">
-          <Navbar sections={sections} />
+          <Navbar sections={sections.map(section => section.id)} />
           
           <div className="snap-start h-screen w-full">
             {sections.map((section) => (
