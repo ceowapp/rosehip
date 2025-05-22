@@ -3,7 +3,6 @@
 import React, { useEffect, useRef } from 'react';
 
 export default function LandingSection() {
-  const titleRef = useRef();
   const subtitleRef = useRef();
   const ctaRef = useRef();
 

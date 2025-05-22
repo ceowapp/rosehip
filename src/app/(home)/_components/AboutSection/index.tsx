@@ -7,26 +7,29 @@ export default function AboutSection() {
   const statsRef = useRef();
 
   useEffect(() => {
+    const titleElement = titleRef.current;
+    const contentElement = contentRef.current;
+    const statsElement = statsRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-            observer.unobserve(entry.target);
+            entry.target.classList.add('animate');
           }
         });
       },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     );
 
-    if (titleRef.current) observer.observe(titleRef.current);
-    if (contentRef.current) observer.observe(contentRef.current);
-    if (statsRef.current) observer.observe(statsRef.current);
+    if (titleElement) observer.observe(titleElement);
+    if (contentElement) observer.observe(contentElement);
+    if (statsElement) observer.observe(statsElement);
 
     return () => {
-      if (titleRef.current) observer.unobserve(titleRef.current);
-      if (contentRef.current) observer.unobserve(contentRef.current);
-      if (statsRef.current) observer.unobserve(statsRef.current);
+      if (titleElement) observer.unobserve(titleElement);
+      if (contentElement) observer.unobserve(contentElement);
+      if (statsElement) observer.unobserve(statsElement);
     };
   }, []);
 
@@ -49,10 +52,8 @@ export default function AboutSection() {
             ref={contentRef} 
             className="text-gray-300 space-y-4 fade-in-up delay-200"
           >
-            <p>
-              At Rosehip, we believe in the transformative power of innovative digital experiences. 
-              Our multidisciplinary team combines strategic thinking, creative design, and cutting-edge
-              technology to create solutions that resonate with audiences and drive meaningful outcomes.
+            <p className="text-lg text-gray-600">
+              We&apos;re a team of passionate developers and designers who love creating beautiful and functional web experiences. Our mission is to help businesses grow through innovative digital solutions.
             </p>
             <p>
               We partner with forward-thinking brands and organizations to develop digital products,

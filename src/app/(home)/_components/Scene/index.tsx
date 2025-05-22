@@ -22,7 +22,7 @@ export default function NoiseBackground() {
     let scene;
     let camera;
     let renderer;
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
     let material;
     let overlayMaterial;
     let darkOverlayMaterial;
@@ -30,7 +30,7 @@ export default function NoiseBackground() {
     let overlay;
     let darkOverlay;
     let currentScale = 1.0;
-    let initialAnimation = {
+    const initialAnimation = {
       complete: false,
       startTime: 0,
       phase: 'zoomIn'
@@ -751,8 +751,8 @@ export default function NoiseBackground() {
    };
 
    // Enhanced mouse velocity tracking
-   let mouseVelocity = { x: 0, y: 0 };
-   let velocitySmoothing = 0.1;
+   const mouseVelocity = { x: 0, y: 0 };
+   const velocitySmoothing = 0.1;
    let lastMouseTime = 0;
 
    const animate = () => {

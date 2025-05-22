@@ -51,26 +51,23 @@ export default function ProjectsSection() {
 
   // Animation on section visibility
   useEffect(() => {
+    const projectsElement = projectsRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          titleRef.current.classList.add('animate-in');
-          
-          // Animate cards sequentially
-          cardsRef.current.forEach((card, index) => {
-            setTimeout(() => {
-              if (card) card.classList.add('animate-in');
-            }, 200 + index * 150);
-          });
-        }
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate');
+          }
+        });
       },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     );
 
-    if (projectsRef.current) observer.observe(projectsRef.current);
+    if (projectsElement) observer.observe(projectsElement);
 
     return () => {
-      if (projectsRef.current) observer.unobserve(projectsRef.current);
+      if (projectsElement) observer.unobserve(projectsElement);
     };
   }, []);
 

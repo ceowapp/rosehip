@@ -27,27 +27,23 @@ export default function ContactSection() {
   
   // Animation on section visibility
   useEffect(() => {
+    const sectionElement = sectionRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          titleRef.current.classList.add('animate-in');
-          
-          setTimeout(() => {
-            formRef.current.classList.add('animate-in');
-          }, 200);
-          
-          setTimeout(() => {
-            infoRef.current.classList.add('animate-in');
-          }, 400);
-        }
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate');
+          }
+        });
       },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     );
 
-    if (sectionRef.current) observer.observe(sectionRef.current);
+    if (sectionElement) observer.observe(sectionElement);
 
     return () => {
-      if (sectionRef.current) observer.unobserve(sectionRef.current);
+      if (sectionElement) observer.unobserve(sectionElement);
     };
   }, []);
   
