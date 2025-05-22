@@ -282,7 +282,6 @@ export default function NoiseBackground() {
           uFogNoise: { value: fogNoiseTexture },
           uBaseColor: { value: new THREE.Color(0x000000) },
           uTileColor: { value: new THREE.Color(0xffffff) },
-          uHighlightColor: { value: new THREE.Color(0xffff00) },
           uTileScale: { value: 200.0 },
           uMouseInfluenceRadius: { value: 100.0 },
           uBrightnessVariation: { value: 0.5 },
@@ -293,10 +292,10 @@ export default function NoiseBackground() {
           uStateDelay: { value: 0.8 },
           uMaxBrightness: { value: 0.7 },
           uMouseVelocity: { value: new THREE.Vector2(0, 0) },
-          uDistortionStrength: { value: 15.0 },
-          uRelaxation: { value: 0.98 },
-          uWaveSpeed: { value: 1.2 },
-          uWaveAmplitude: { value: 0.25 }
+          uDistortionStrength: { value: 30.0 },
+          uRelaxation: { value: 0.95 },
+          uWaveSpeed: { value: 2.0 },
+          uWaveAmplitude: { value: 0.5 }
         },
         vertexShader: `
           uniform float uTime;
@@ -317,10 +316,10 @@ export default function NoiseBackground() {
           varying float vMouseDistance;
           varying vec2 vMouseVelocity;
 
-          // Water-like smooth falloff function
+          // Enhanced water-like smooth falloff function
           float waterFalloff(float x) {
             float falloff = 1.0 - smoothstep(0.0, 1.0, x);
-            return falloff * falloff * (3.0 - 2.0 * falloff); // Smoothstep interpolation
+            return falloff * falloff * (3.0 - 2.0 * falloff);
           }
 
           void main() {
@@ -335,41 +334,45 @@ export default function NoiseBackground() {
             float mouseDistance = distance(worldPosition.xyz, uMouseWorldPos);
             vMouseDistance = mouseDistance;
             
-            // Calculate mouse influence with water-like falloff
+            // Calculate mouse influence with enhanced falloff
             float rawInfluence = 1.0 - smoothstep(0.0, uMouseInfluenceRadius, mouseDistance);
             vMouseInfluence = waterFalloff(mouseDistance / uMouseInfluenceRadius) * rawInfluence;
             vMouseInfluence *= uIsMouseMoving;
             
-            // Apply distortion based on mouse influence
+            // Apply enhanced distortion
             vec3 distortedPosition = position;
             
             if (vMouseInfluence > 0.01) {
-              // Calculate water-like wave effect
-              float wave = sin(position.x * 6.0 + uTime * uWaveSpeed) * 
-                          cos(position.z * 3.0 + uTime * uWaveSpeed * 0.5);
+              // Enhanced wave effect
+              float wave = sin(position.x * 8.0 + uTime * uWaveSpeed) * 
+                          cos(position.z * 4.0 + uTime * uWaveSpeed * 0.5);
               
-              // Add secondary wave for more complex water-like motion
-              float secondaryWave = sin(position.x * 3.0 - uTime * uWaveSpeed * 0.7) * 
-                                  cos(position.z * 6.0 + uTime * uWaveSpeed * 0.3);
+              // Add secondary wave for more complex motion
+              float secondaryWave = sin(position.x * 4.0 - uTime * uWaveSpeed * 0.7) * 
+                                  cos(position.z * 8.0 + uTime * uWaveSpeed * 0.3);
               
-              // Combine waves with smooth transition
+              // Combine waves with enhanced influence
               float combinedWave = mix(wave, secondaryWave, 0.5);
               
-              // Apply water-like distortion only to Y
-              float waveInfluence = combinedWave * uWaveAmplitude * vMouseInfluence;
+              // Apply stronger distortion to Y
+              float waveInfluence = combinedWave * uWaveAmplitude * vMouseInfluence * 2.0;
               
-              // Add gentle velocity influence
-              float velocityInfluence = uMouseVelocity.y * vMouseInfluence * 0.3;
+              // Add stronger velocity influence
+              float velocityInfluence = uMouseVelocity.y * vMouseInfluence * 0.8;
               
-              // Combine effects with smooth transition
+              // Combine effects with enhanced strength
               distortedPosition.y += waveInfluence + velocityInfluence;
               
-              // Add subtle ripple effect
-              float ripple = sin(mouseDistance * 1.5 - uTime * 2.0) * vMouseInfluence * 0.15;
+              // Add stronger ripple effect
+              float ripple = sin(mouseDistance * 2.0 - uTime * 3.0) * vMouseInfluence * 0.3;
               distortedPosition.y += ripple;
+              
+              // Add subtle X and Z distortion
+              distortedPosition.x += sin(uTime * 2.0 + position.y) * vMouseInfluence * 0.2;
+              distortedPosition.z += cos(uTime * 2.0 + position.y) * vMouseInfluence * 0.2;
             }
             
-            // Apply relaxation with smooth transition
+            // Apply relaxation with smoother transition
             distortedPosition = mix(position, distortedPosition, uRelaxation);
             
             gl_Position = projectionMatrix * modelViewMatrix * vec4(distortedPosition, 1.0);
@@ -385,7 +388,6 @@ export default function NoiseBackground() {
           uniform sampler2D uFogNoise;
           uniform vec3 uBaseColor;
           uniform vec3 uTileColor;
-          uniform vec3 uHighlightColor;
           uniform float uTileScale;
           uniform float uMouseInfluenceRadius;
           uniform float uBrightnessVariation;
@@ -450,7 +452,7 @@ export default function NoiseBackground() {
             float pattern = smoothstep(tile.x - 0.3, tile.x, tile.y) -
                             smoothstep(tile.x, tile.x + 0.3, tile.y);
             
-            // Enhanced lighting effects with mouse influence
+            // Base lighting
             vec2 lightCoords = tileCoords * 0.1;
             float delayedTime = floor(uTime / uStateDelay) * uStateDelay;
             float timeBasedRandom = fract(sin(dot(lightCoords, vec2(12.9898, 78.233))) * 43758.5453 + delayedTime * 0.2);
@@ -465,14 +467,8 @@ export default function NoiseBackground() {
             
             pattern *= tileBrightness;
             
-            // Base color calculation with enhanced mouse interaction
+            // Base color calculation
             vec3 finalColor = mix(uBaseColor, uTileColor, pattern);
-            
-            // Keep yellow highlight color
-            finalColor = mix(finalColor, uHighlightColor, vMouseInfluence * 0.8);
-            
-            // Enhanced brightness with mouse influence
-            finalColor += uTileColor * pattern * uMaxBrightness * (1.0 + vMouseInfluence * 2.0);
             
             // Adjust gamma for better contrast
             finalColor = pow(finalColor, vec3(0.7));
