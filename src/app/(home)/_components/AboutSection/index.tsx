@@ -61,7 +61,7 @@ export default function AboutSection() {
             </p>
             <p>
               Our approach is collaborative, iterative, and focused on delivering exceptional quality and value.
-              We're not just building websites or apps – we're crafting the future of digital interaction.
+              We&apos;re not just building websites or apps – we&apos;re crafting the future of digital interaction.
             </p>
           </div>
         </div>

@@ -1,8 +1,6 @@
 "use client"
 
-import React, { useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { useProgress, Html } from '@react-three/drei';
+import React, { useRef, useEffect, Suspense, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Loader from '@/components/Loader'
@@ -11,17 +9,16 @@ import LandingSection from './_components/LandingSection';
 import AboutSection from './_components/AboutSection';
 import ProjectsSection from './_components/ProjectsSection';
 import ContactSection from './_components/ContactSection';
-import { motion } from 'framer-motion';
 
 export default function Home() {
-  const [loaded, setLoaded] = useState(false);
   const scrollContainer = useRef(null);
-  const sections = [
+  
+  const sections = useMemo(() => [
     { id: 'landing', component: LandingSection },
     { id: 'about', component: AboutSection },
     { id: 'projects', component: ProjectsSection },
     { id: 'contact', component: ContactSection }
-  ];
+  ], []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,7 +27,7 @@ export default function Home() {
         const scrollPosition = container.scrollTop;
         const windowHeight = window.innerHeight;
         
-        sections.forEach((section, index) => {
+        sections.forEach((section) => {
           const sectionElement = document.getElementById(section.id);
           if (sectionElement) {
             const sectionTop = sectionElement.offsetTop;
@@ -48,13 +45,14 @@ export default function Home() {
       }
     };
 
-    if (scrollContainer.current) {
-      scrollContainer.current.addEventListener('scroll', handleScroll);
+    const container = scrollContainer.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
     }
 
     return () => {
-      if (scrollContainer.current) {
-        scrollContainer.current.removeEventListener('scroll', handleScroll);
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
       }
     };
   }, [sections]);

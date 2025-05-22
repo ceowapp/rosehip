@@ -1,11 +1,10 @@
 "use client"
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 export default function NoiseBackground() {
   const mountRef = useRef(null)
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const mousePositionRef = useRef({ x: 0, y: 0 })
   const prevMousePositionRef = useRef({ x: 0, y: 0 })
   const mouseTrailRef = useRef([])
@@ -55,7 +54,6 @@ export default function NoiseBackground() {
       }
 
       mouseTrailRef.current = trail;
-      setMousePosition(newPosition);
       mousePositionRef.current = newPosition;
 
       isMouseMovingRef.current = true;
@@ -66,7 +64,7 @@ export default function NoiseBackground() {
 
       mouseTimerRef.current = setTimeout(() => {
         isMouseMovingRef.current = false;
-      }, 200); // Increased timeout for better detection
+      }, 200);
     };
 
     const init = () => {
@@ -158,6 +156,7 @@ export default function NoiseBackground() {
         animate();
       });
 
+      const mountElement = mountRef.current;
       window.addEventListener('mousemove', handleMouseMove);
     };
 
@@ -923,8 +922,9 @@ export default function NoiseBackground() {
        cancelAnimationFrame(animationId);
      }
 
-     if (mountRef.current && renderer) {
-       mountRef.current.removeChild(renderer.domElement);
+     const mountElement = mountRef.current;
+     if (mountElement && renderer) {
+       mountElement.removeChild(renderer.domElement);
      }
 
      if (gltfModelRef.current) {
