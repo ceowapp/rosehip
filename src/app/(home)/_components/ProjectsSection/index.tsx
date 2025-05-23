@@ -40,9 +40,9 @@ const projects = [
 
 export default function ProjectsSection() {
   const [activeProject, setActiveProject] = useState(0);
-  const projectsRef = useRef();
-  const titleRef = useRef();
-  const cardsRef = useRef([]);
+  const projectsRef = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   // Set up refs array
   useEffect(() => {
