@@ -3,9 +3,9 @@
 import React, { useEffect, useRef } from 'react';
 
 export default function LandingSection() {
-  const subtitleRef = useRef();
-  const ctaRef = useRef();
-
+  const subtitleRef = useRef<HTMLParagraphElement | null>(null);
+  const ctaRef = useRef<HTMLDivElement | null>(null); 
+  
   useEffect(() => {
     // Animate elements when component mounts
     const subtitleElement = subtitleRef.current;
