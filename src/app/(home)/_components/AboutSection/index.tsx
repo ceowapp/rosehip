@@ -2,9 +2,9 @@
 import React, { useRef, useEffect } from 'react';
 
 export default function AboutSection() {
-  const titleRef = useRef();
-  const contentRef = useRef();
-  const statsRef = useRef();
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const statsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const titleElement = titleRef.current;
