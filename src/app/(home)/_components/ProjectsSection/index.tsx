@@ -97,7 +97,7 @@ export default function ProjectsSection() {
           {projects.map((project, index) => (
             <div
               key={project.id}
-              ref={el => cardsRef.current[index] = el}
+              ref={(el) => void (cardsRef.current[index] = el)}
               className={`project-card fade-in-up cursor-pointer ${activeProject === index ? 'active' : ''}`}
               style={{ transitionDelay: `${index * 100}ms` }}
               onClick={() => handleProjectClick(index)}
