@@ -12,10 +12,10 @@ export default function ContactSection() {
   });
   
   const [formSubmitted, setFormSubmitted] = useState(false);
-  const sectionRef = useRef();
-  const titleRef = useRef();
-  const formRef = useRef();
-  const infoRef = useRef();
+  const sectionRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
   
   // Services options
   const serviceOptions = [
@@ -102,7 +102,7 @@ export default function ContactSection() {
           ref={titleRef}
           className="text-3xl md:text-5xl font-bold text-white mb-12 fade-in-up"
         >
-          Let's Create Something Amazing
+          Let&apos;s Create Something Amazing
         </h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -118,7 +118,7 @@ export default function ContactSection() {
                 </svg>
                 <h3 className="text-2xl font-semibold text-white mb-2">Thank You!</h3>
                 <p className="text-gray-300">
-                  Your message has been received. We'll be in touch with you shortly.
+                  Your message has been received. We&apos;ll be in touch with you shortly.
                 </p>
               </div>
             ) : (

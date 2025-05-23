@@ -270,213 +270,238 @@ export default function NoiseBackground() {
       scene.add(overlay);
     };
     
-    // Modified shader material with distortion only - no color changes
     const createModelShaderMaterial = (fogNoiseTexture) => {
       return new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0 },
-          uMouse: { value: new THREE.Vector2(0, 0) },
-          uMouseWorldPos: { value: new THREE.Vector3(0, 0, 0) },
-          uIsMouseMoving: { value: 0.0 },
-          uFogNoise: { value: fogNoiseTexture },
-          uBaseColor: { value: new THREE.Color(0x000000) },
-          uTileColor: { value: new THREE.Color(0xffffff) },
-          uTileScale: { value: 200.0 },
-          uMouseInfluenceRadius: { value: 100.0 },
-          uBrightnessVariation: { value: 0.5 },
-          uAnimationSpeed: { value: 0.2 },
-          uLightSpeed: { value: 0.5 },
-          uWaveFrequency: { value: 1.0 },
-          uThreshold: { value: 0.5 },
-          uStateDelay: { value: 0.8 },
-          uMaxBrightness: { value: 0.7 },
-          uMouseVelocity: { value: new THREE.Vector2(0, 0) },
-          uDistortionStrength: { value: 30.0 },
-          uRelaxation: { value: 0.95 },
-          uWaveSpeed: { value: 2.0 },
-          uWaveAmplitude: { value: 0.5 }
-        },
-        vertexShader: `
-          uniform float uTime;
-          uniform vec3 uMouseWorldPos;
-          uniform float uIsMouseMoving;
-          uniform float uMouseInfluenceRadius;
-          uniform vec2 uMouseVelocity;
-          uniform float uDistortionStrength;
-          uniform float uRelaxation;
-          uniform float uWaveSpeed;
-          uniform float uWaveAmplitude;
-          
-          varying vec2 vUv;
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying vec3 vWorldPosition;
-          varying float vMouseInfluence;
-          varying float vMouseDistance;
-          varying vec2 vMouseVelocity;
-
-          // Enhanced water-like smooth falloff function
-          float waterFalloff(float x) {
-            float falloff = 1.0 - smoothstep(0.0, 1.0, x);
-            return falloff * falloff * (3.0 - 2.0 * falloff);
-          }
-
-          void main() {
-            vUv = uv;
-            vNormal = normalize(normalMatrix * normal);
-            vMouseVelocity = uMouseVelocity;
-            vPosition = position;
-            
-            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPosition.xyz;
-            
-            float mouseDistance = distance(worldPosition.xyz, uMouseWorldPos);
-            vMouseDistance = mouseDistance;
-            
-            // Calculate mouse influence with enhanced falloff
-            float rawInfluence = 1.0 - smoothstep(0.0, uMouseInfluenceRadius, mouseDistance);
-            vMouseInfluence = waterFalloff(mouseDistance / uMouseInfluenceRadius) * rawInfluence;
-            vMouseInfluence *= uIsMouseMoving;
-            
-            // Apply enhanced distortion
-            vec3 distortedPosition = position;
-            
-            if (vMouseInfluence > 0.01) {
-              // Enhanced wave effect
-              float wave = sin(position.x * 8.0 + uTime * uWaveSpeed) * 
-                          cos(position.z * 4.0 + uTime * uWaveSpeed * 0.5);
+          uniforms: {
+              uTime: { value: 0 },
+              uMouse: { value: new THREE.Vector2(0, 0) },
+              uMouseWorldPos: { value: new THREE.Vector3(0, 0, 0) },
+              uIsMouseMoving: { value: 0.0 },
+              uFogNoise: { value: fogNoiseTexture },
+              uBaseColor: { value: new THREE.Color(0x000000) }, // Model background color, very dark
+              uParticleColor: { value: new THREE.Color(0xffffff) }, // Particle color set to white
+              uTileScale: { value: 100.0 }, // Increased from 1.0 to make tiles slightly larger
+              uMouseInfluenceRadius: { value: 150.0 }, // Larger radius for model vs background (was 100.0)
+              uBrightnessVariation: { value: 0.2 },
+              uAnimationSpeed: { value: 0.3 },
+              uLightSpeed: { value: 0.2 },
+              uWaveFrequency: { value: 0.5 },
+              uThreshold: { value: 0.3 },
+              uStateDelay: { value: 4.0 },
+              uParticleSpeed: { value: 0.05 },
+              uParticleSize: { value: 0.25 }, // Slightly increased particle size again
+              uMaxBrightness: { value: 0.9 },
+              uMouseVelocity: { value: new THREE.Vector2(0, 0) },
+              uDistortionStrength: { value: 30.0 },
+              uRelaxation: { value: 0.95 },
+              uWaveSpeed: { value: 2.0 },
+              uWaveAmplitude: { value: 0.5 },
+              uVerticalSpeed: { value: 0.2 }, // Reduced from 0.1 for slower vertical movement
+              // New uniforms for hover effect
+              uHoverColor: { value: new THREE.Color(0xffff00) },
+              uHoverIntensity: { value: 4.0 },
+              uHoverRadius: { value: 0.6 },
+              uHoverSmoothness: { value: 0.8 },
+              uEdgeBrightness: { value: 0.8 }, // New uniform for edge brightness control
+              uBaseBrightness: { value: 1.2 },
+          },
+          vertexShader: `
+              uniform float uTime;
+              uniform vec3 uMouseWorldPos;
+              uniform float uIsMouseMoving;
+              uniform float uMouseInfluenceRadius;
+              uniform vec2 uMouseVelocity;
+              uniform float uDistortionStrength;
+              uniform float uRelaxation;
+              uniform float uWaveSpeed;
+              uniform float uWaveAmplitude;
               
-              // Add secondary wave for more complex motion
-              float secondaryWave = sin(position.x * 4.0 - uTime * uWaveSpeed * 0.7) * 
-                                  cos(position.z * 8.0 + uTime * uWaveSpeed * 0.3);
-              
-              // Combine waves with enhanced influence
-              float combinedWave = mix(wave, secondaryWave, 0.5);
-              
-              // Apply stronger distortion to Y
-              float waveInfluence = combinedWave * uWaveAmplitude * vMouseInfluence * 2.0;
-              
-              // Add stronger velocity influence
-              float velocityInfluence = uMouseVelocity.y * vMouseInfluence * 0.8;
-              
-              // Combine effects with enhanced strength
-              distortedPosition.y += waveInfluence + velocityInfluence;
-              
-              // Add stronger ripple effect
-              float ripple = sin(mouseDistance * 2.0 - uTime * 3.0) * vMouseInfluence * 0.3;
-              distortedPosition.y += ripple;
-              
-              // Add subtle X and Z distortion
-              distortedPosition.x += sin(uTime * 2.0 + position.y) * vMouseInfluence * 0.2;
-              distortedPosition.z += cos(uTime * 2.0 + position.y) * vMouseInfluence * 0.2;
-            }
-            
-            // Apply relaxation with smoother transition
-            distortedPosition = mix(position, distortedPosition, uRelaxation);
-            
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(distortedPosition, 1.0);
-          }
-        `,
-        fragmentShader: `
-          #define PI 3.14159265358979323846
+              varying vec2 vUv;
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec3 vWorldPosition;
+              varying float vMouseInfluence;
+              varying float vMouseDistance;
+              varying vec2 vMouseVelocity;
+    
+              void main() {
+                  vUv = uv;
+                  vNormal = normalize(normalMatrix * normal);
+                  vMouseVelocity = uMouseVelocity;
+                  vPosition = position;
+                  
+                  vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                  vWorldPosition = worldPosition.xyz;
+                  
+                  float mouseDistance = distance(worldPosition.xyz, uMouseWorldPos);
+                  vMouseDistance = mouseDistance;
+                  
+                  float rawInfluence = 1.0 - smoothstep(0.0, uMouseInfluenceRadius, mouseDistance);
+                  vMouseInfluence = rawInfluence * uIsMouseMoving;
+                  
+                  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+              }
+          `,
+          fragmentShader: `
+              #define PI 3.14159265358979323846
+    
+              uniform float uTime;
+              uniform vec2 uMouse;
+              uniform vec3 uMouseWorldPos;
+              uniform float uIsMouseMoving;
+              uniform sampler2D uFogNoise;
+              uniform vec3 uBaseColor;
+              uniform vec3 uParticleColor;
+              uniform float uTileScale;
+              uniform float uMouseInfluenceRadius;
+              uniform float uBrightnessVariation;
+              uniform float uAnimationSpeed; // Global animation speed multiplier
+              uniform float uLightSpeed;
+              uniform float uWaveFrequency;
+              uniform float uThreshold;
+              uniform float uStateDelay;     // Duration of delay at each edge
+              uniform float uParticleSpeed;  // Speed of particle travel (lower for slower)
+              uniform float uParticleSize;
+              uniform float uMaxBrightness;
+              uniform vec2 uMouseVelocity;
+              uniform float uVerticalSpeed;
+              // New hover effect uniforms
+              uniform vec3 uHoverColor;
+              uniform float uHoverIntensity;
+              uniform float uHoverRadius;
+              uniform float uHoverSmoothness;
+              uniform float uEdgeBrightness;
+              uniform float uBaseBrightness;
+    
+              varying vec2 vUv;
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec3 vWorldPosition;
+              varying float vMouseInfluence;
+              varying float vMouseDistance;
+              varying vec2 vMouseVelocity;
+    
+              // Hash function for random numbers (from https://www.shadertoy.com/view/4djSRW)
+              float hash12(vec2 p) {
+                  vec3 p3  = fract(vec3(p.xyx) * .1031);
+                  p3 += dot(p3, p3.yzx + 33.33);
+                  return fract((p3.x + p3.y) * p3.z);
+              }
+    
+              // Function to get a random integer within a range
+              float randomInt(float seed, float maxVal) {
+                  return floor(hash12(vec2(seed, seed * 123.45)) * maxVal);
+              }
+    
+              // Define 8 key points within a tile: 4 mid-edges and 4 corners
+              vec2 getTilePoint(int index) {
+                  if (index == 0) return vec2(0.0, 0.5); // Left-mid
+                  if (index == 1) return vec2(1.0, 0.5); // Right-mid
+                  if (index == 2) return vec2(0.5, 0.0); // Bottom-mid
+                  if (index == 3) return vec2(0.5, 1.0); // Top-mid
+                  if (index == 4) return vec2(0.0, 0.0); // BL corner
+                  if (index == 5) return vec2(1.0, 0.0); // BR corner
+                  if (index == 6) return vec2(0.0, 1.0); // TL corner
+                  if (index == 7) return vec2(1.0, 1.0); // TR corner
+                  return vec2(0.5, 0.5); // Default to center (shouldn't happen)
+              }
+    
+              void main() {
+                  // Use world position directly for more consistent tiling on a sphere
+                  vec2 planarCoords = vWorldPosition.xy; // Or perhaps try vUv if the model has good UVs
+    
+                  // Grid tiling
+                  vec2 st = planarCoords * uTileScale;
+                  vec2 tileId = floor(st); // Integer coordinates for each tile
+                  vec2 localPos = fract(st); // Position within the current tile (0.0 to 1.0)
+    
+                  // --- Modified for Grouping ---
+                  const float GROUP_SIZE_X = 1.0; // Set to 1 to ensure each tile has its own particles
+                  const float GROUP_SIZE_Y = 1.0; // Set to 1 to ensure each tile has its own particles
+    
+                  // Calculate the group ID - now each tile is its own group
+                  vec2 groupId = tileId; // Use tileId directly instead of grouping
+                  float groupRandomBase = hash12(groupId);
+    
+                  // --- Particle Effect Logic ---
+                  const float NUM_SEGMENTS = 8.0;
+                  float moveDurationPerSegment = 1.0 / uParticleSpeed;
+                  float totalCycleDuration = (moveDurationPerSegment + uStateDelay) * NUM_SEGMENTS;
+    
+                  // Time for this specific tile
+                  float groupTime = fract((uTime * uAnimationSpeed + groupRandomBase * 0.1) / totalCycleDuration);
+    
+                  vec2 particlePosInTile = vec2(0.5);
+                  float particleVisibility = 1.0; // Always visible
+    
+                  // Determine the current segment and phase within it
+                  float segmentProgress = groupTime * NUM_SEGMENTS;
+                  int currentSegmentIndex = int(floor(segmentProgress));
+                  float progressInSegment = fract(segmentProgress);
+    
+                  // Each segment consists of a move phase and a delay phase
+                  float movePhaseRatio = moveDurationPerSegment / (moveDurationPerSegment + uStateDelay);
+    
+                  // Ensure particles move along all edges in sequence
+                  int startIndex = currentSegmentIndex;
+                  int endIndex = (currentSegmentIndex + 1) % 8;
+    
+                  vec2 startPoint = getTilePoint(startIndex);
+                  vec2 endPoint = getTilePoint(endIndex);
+    
+                  if (progressInSegment < movePhaseRatio) {
+                      // Move Phase
+                      float moveLerp = progressInSegment / movePhaseRatio;
+                      particlePosInTile = mix(startPoint, endPoint, moveLerp);
+                  } else {
+                      // Delay Phase
+                      particlePosInTile = endPoint;
+                  }
+                  
+                  // Calculate actual particle visibility based on distance to its center
+                  float distToParticle = distance(localPos, particlePosInTile);
+                  float particleAlpha = smoothstep(uParticleSize, 0.0, distToParticle);
+    
+                 // --- NEW HOVER EFFECT CALCULATION ---
+                float mouseWorldDistance = distance(vWorldPosition, uMouseWorldPos);
+                float hoverInfluence = 1.0 - smoothstep(0.0, uHoverRadius * 60.0, mouseWorldDistance);
+                hoverInfluence = pow(hoverInfluence, uHoverSmoothness);
+                hoverInfluence *= uIsMouseMoving;
 
-          uniform float uTime;
-          uniform vec2 uMouse;
-          uniform vec3 uMouseWorldPos;
-          uniform float uIsMouseMoving;
-          uniform sampler2D uFogNoise;
-          uniform vec3 uBaseColor;
-          uniform vec3 uTileColor;
-          uniform float uTileScale;
-          uniform float uMouseInfluenceRadius;
-          uniform float uBrightnessVariation;
-          uniform float uAnimationSpeed;
-          uniform float uLightSpeed;
-          uniform float uWaveFrequency;
-          uniform float uThreshold;
-          uniform float uStateDelay;
-          uniform float uMaxBrightness;
-          uniform vec2 uMouseVelocity;
+                float hoverPulse = 0.9 + 0.1 * sin(uTime * 2.0);
+                hoverInfluence *= hoverPulse;
 
-          varying vec2 vUv;
-          varying vec3 vNormal;
-          varying vec3 vPosition;
-          varying vec3 vWorldPosition;
-          varying float vMouseInfluence;
-          varying float vMouseDistance;
-          varying vec2 vMouseVelocity;
+                // Start with base color
+                vec3 baseColor = uBaseColor * uBaseBrightness;
 
-          float random(in vec2 st) {
-            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-          }
+                // Apply particle effect
+                vec3 particleColor = mix(baseColor, uParticleColor, particleAlpha * particleVisibility);
 
-          vec2 truchetPattern(vec2 fpos, float random) {
-            vec2 tile;
-            if (random < 0.25) {
-              tile = vec2(fpos.x, fpos.y);
-            } else if (random < 0.5) {
-              tile = vec2(1.0 - fpos.x, fpos.y);
-            } else if (random < 0.75) {
-              tile = vec2(fpos.x, 1.0 - fpos.y);
-            } else {
-              tile = vec2(1.0 - fpos.x, 1.0 - fpos.y);
-            }
-            return tile;
-          }
+                // --- APPLY HOVER EFFECT WITH BRIGHTNESS CONTROL ---
+                // Calculate hover color with increased brightness
+                vec3 hoverColor = mix(particleColor, uHoverColor, 0.7); // Increased from 0.5
 
-          vec2 worldToTileCoords(vec3 worldPos, vec3 normal) {
-            vec2 tileCoords;
-            vec3 absNormal = abs(normal);
-            
-            if (absNormal.x > absNormal.y && absNormal.x > absNormal.z) {
-              tileCoords = worldPos.yz;
-            } else if (absNormal.y > absNormal.z) {
-              tileCoords = worldPos.xz;
-            } else {
-              tileCoords = worldPos.xy;
-            }
-            
-            return tileCoords;
-          }
+                // Apply hover effect with increased brightness
+                vec3 finalColor = mix(particleColor, hoverColor, hoverInfluence);
 
-          void main() {
-            vec2 tileCoords = worldToTileCoords(vWorldPosition, vNormal);
-            vec2 st = tileCoords * uTileScale * 0.1;
-            vec2 ipos = floor(st);
-            vec2 fpos = fract(st);
-            
-            float tileRandom = random(ipos);
-        
-            vec2 tile = truchetPattern(fpos, tileRandom);
-            float pattern = smoothstep(tile.x - 0.3, tile.x, tile.y) -
-                            smoothstep(tile.x, tile.x + 0.3, tile.y);
-            
-            // Base lighting
-            vec2 lightCoords = tileCoords * 0.1;
-            float delayedTime = floor(uTime / uStateDelay) * uStateDelay;
-            float timeBasedRandom = fract(sin(dot(lightCoords, vec2(12.9898, 78.233))) * 43758.5453 + delayedTime * 0.2);
-            float binaryState = step(uThreshold, timeBasedRandom);
-            
-            vec2 noiseCoord = tileCoords * 0.05 + delayedTime * 0.1;
-            float noiseValue = texture2D(uFogNoise, noiseCoord).r;
-            
-            float tileBrightness = binaryState * (0.4 + noiseValue * 0.6);
-            float randomPulse = step(0.5, fract(delayedTime * uAnimationSpeed + tileRandom * PI * 2.0));
-            tileBrightness *= (0.7 + randomPulse * 0.5);
-            
-            pattern *= tileBrightness;
-            
-            // Base color calculation
-            vec3 finalColor = mix(uBaseColor, uTileColor, pattern);
-            
-            // Adjust gamma for better contrast
-            finalColor = pow(finalColor, vec3(0.7));
-            
-            gl_FragColor = vec4(finalColor, 1.0);
-          }
-        `,
-        transparent: false,
-        side: THREE.DoubleSide
+                // Apply brightness increase with higher multiplier
+                float maxBrightnessMultiplier = 2.0; // Increased from 1.5
+                float brightnessIncrease = hoverInfluence * maxBrightnessMultiplier;
+
+                // Modulate brightness based on particle visibility
+                float brightnessModulation = 0.4 + (particleAlpha * 0.8); // Increased from 0.3 + 0.7
+                brightnessIncrease *= brightnessModulation;
+
+                finalColor *= 1.0 + brightnessIncrease;
+
+                // Ensure we don't exceed reasonable brightness limits
+                finalColor = clamp(finalColor, vec3(0.0), vec3(3.0)); // Increased max from 2.0 to 3.0
+
+                gl_FragColor = vec4(finalColor, 1.0);
+              }
+          `,
+          transparent: false,
+          side: THREE.DoubleSide
       });
     };
 
@@ -515,7 +540,7 @@ export default function NoiseBackground() {
     const createNoiseBackground = (patternTexture, fogNoiseTexture) => {
       const tileTextures = createTileTextures(patternTexture.image);
       const planeGeometry = new THREE.PlaneGeometry(300, 300, 1, 1);
-
+    
       material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
@@ -541,7 +566,7 @@ export default function NoiseBackground() {
           uHighlightColor: { value: new THREE.Color(0xffff00) },
           uIsMouseMoving: { value: 0.0 },
           uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-          uStepSize: { value: 13.5 },
+          uStepSize: { value: 15 },
           uPatternThreshold: { value: 0.25 },
           uNumColumns: { value: 7.0 },
           uNumRows: { value: 1.0 },
@@ -555,14 +580,14 @@ export default function NoiseBackground() {
           varying vec2 vUv;
           varying vec2 vScreenCoord;
           varying vec3 vWorldPosition;
-
+    
           void main() {
             vUv = uv;
-
+    
             vec4 worldPosition = modelMatrix * vec4(position, 1.0);
             vec4 viewPosition = viewMatrix * worldPosition;
             vec4 projectedPosition = projectionMatrix * viewPosition;
-
+    
             gl_Position = projectedPosition;
             vScreenCoord = gl_Position.xy * 0.5 + 0.5;
             vWorldPosition = worldPosition.xyz;
@@ -592,116 +617,131 @@ export default function NoiseBackground() {
           uniform float uSwapTime;
           uniform float uVerticalSpeed;
           uniform float uWorldScale;
-
+    
           varying vec2 vUv;
-         varying vec2 vScreenCoord;
-         varying vec3 vWorldPosition;
-
-         float hash(vec2 p) {
-           p = fract(p * vec2(123.34, 456.21));
-           p += dot(p, p + 45.32);
-           return fract(p.x * p.y);
-         }
-
-         float getCellAnimationOffset(vec2 cell) {
-             return hash(cell * 9.87) * 1.0;
-         }
-
-         float getBrightness(vec2 cell, float cellRandom, float blendFactor) {
-           vec2 noiseSampleCoord = cell * 0.05 + uTime * 0.01;
-           float noiseValue = texture2D(uNoiseTexture, fract(noiseSampleCoord)).r;
-           float h = hash(cell * 7.29);
-           float combinedRandom = (h + noiseValue) * 0.5;
-           float baseBrightness = pow(combinedRandom, 2.0) * 3.0;
-           
-           float pulse = 0.9 + sin(uTime * 0.2 + cellRandom * 6.28) * 0.2;
-           float transitionBrightness = 1.0 - abs(blendFactor - 0.5) * 0.5;
-           return baseBrightness * pulse * transitionBrightness;
-         }
-
-         vec4 getTileColor(int tileIndex, vec2 uv) {
-           if(tileIndex == 0) return texture2D(uTile0, uv);
-           else if(tileIndex == 1) return texture2D(uTile1, uv);
-           else if(tileIndex == 2) return texture2D(uTile2, uv);
-           else if(tileIndex == 3) return texture2D(uTile3, uv);
-           else if(tileIndex == 4) return texture2D(uTile4, uv);
-           else if(tileIndex == 5) return texture2D(uTile5, uv);
-           else return texture2D(uTile6, uv);
-         }
-
-         void main() {
-           vec2 worldCoord = vWorldPosition.xy;
-           float scaledStepSize = uStepSize / uWorldScale;
-           vec2 cellCoord = floor(worldCoord / scaledStepSize);
-           vec2 cellPos = fract(worldCoord / scaledStepSize);
-
-           float swapDuration = 0.4;
-           float swapInterval = 2.0;
-
-           float cellAnimationOffset = getCellAnimationOffset(cellCoord);
-           float cellPhase = mod(uSwapTime + cellAnimationOffset, swapInterval);
-           float blendFactor = smoothstep(swapInterval - swapDuration, swapInterval, cellPhase);
-
-           float cellRandom = hash(cellCoord);
-           float brightness = getBrightness(cellCoord, cellRandom, blendFactor);
-           
-           float numTiles = 7.0;
-           float currentPatternFloat = floor(cellPhase / swapInterval * numTiles);
-           float nextPatternFloat = mod(currentPatternFloat + 1.0, numTiles);
-
-           int currentPatternIndex = int(currentPatternFloat);
-           int nextPatternIndex = int(nextPatternFloat);
-
-           vec2 animatedCellPos = fract(cellPos + vec2(0.0, uTime * uVerticalSpeed + cellRandom * 0.1));
-
-           vec4 currentTileColor = getTileColor(currentPatternIndex, animatedCellPos);
-           vec4 nextTileColor = getTileColor(nextPatternIndex, animatedCellPos);
-           vec4 finalTileColor = mix(currentTileColor, nextTileColor, blendFactor);
-
-           vec2 noiseCoord1 = cellPos * 2.0 + vec2(cellRandom * 10.0, uTime * 0.5);
-           vec2 noiseCoord2 = cellPos * 3.5 + vec2(0.3, 0.7) + vec2(cellRandom * 5.0, -uTime * 0.3);
-
-           vec4 noise1 = texture2D(uNoiseTexture, noiseCoord1);
-           vec4 noise2 = texture2D(uNoiseTexture, noiseCoord2);
-
-           float tileFactor = (finalTileColor.r + finalTileColor.g + finalTileColor.b) / 3.0;
-           float noiseFactor = noise1.r * 0.4 + noise2.g * 0.3;
-           float combinedFactor = tileFactor * noiseFactor;
-
-           vec2 mousePos = uMouse * 0.5 + 0.5;
-           vec2 cellCenter = (cellCoord * scaledStepSize) / 100.0 * 0.5 + 0.5;
-           float mouseDistance = distance(cellCenter, mousePos);
-           float mouseInfluence = 1.0 - smoothstep(0.0, uMouseInfluenceRadius, mouseDistance);
-           mouseInfluence *= uIsMouseMoving;
-
-           float pulse = 0.9 + sin(uTime * 0.2 + cellRandom * 6.28) * 0.2;
-           brightness *= pulse;
-
-           vec3 finalColor = uBaseColor;
-           finalColor = mix(finalColor, uHighlightColor, mouseInfluence * 0.8);
-           brightness *= 1.0 + mouseInfluence * 0.8;
-           finalColor *= brightness;
-
-           float isPattern = step(uPatternThreshold, tileFactor);
-           float alpha = isPattern * combinedFactor * brightness * 1.5;
-
-           gl_FragColor = vec4(finalColor, alpha);
-         }
-       `,
-       transparent: true,
-       depthWrite: false,
-       blending: THREE.AdditiveBlending,
-     });
-
-     noiseBackground = new THREE.Mesh(planeGeometry, material);
-     noiseBackground.scale.set(1, 1, 1);
-     currentScale = 1;
-     scene.add(noiseBackground);
-   };
+          varying vec2 vScreenCoord;
+          varying vec3 vWorldPosition;
+    
+          float hash(vec2 p) {
+            p = fract(p * vec2(123.34, 456.21));
+            p += dot(p, p + 45.32);
+            return fract(p.x * p.y);
+          }
+    
+          // Modified to create column-based offsets that ensure vertical movement
+          float getCellAnimationOffset(vec2 cell) {
+            // Use only the Y coordinate with a strong multiplier to create row-based timing
+            // Add a small X component to prevent perfect synchronization but keep it minimal
+            return hash(vec2(cell.x * 0.1, cell.y * 10.0)) * 2.0;
+          }
+    
+          float getBrightness(vec2 cell, float cellRandom, float blendFactor) {
+            vec2 noiseSampleCoord = cell * 0.05 + uTime * 0.01;
+            float noiseValue = texture2D(uNoiseTexture, fract(noiseSampleCoord)).r;
+            float h = hash(cell * 7.29);
+            float combinedRandom = (h + noiseValue) * 0.5;
+            float baseBrightness = pow(combinedRandom, 1.5) * 3.0;
+            
+            float pulse = 0.95 + sin(uTime * 0.2 + cellRandom * 6.28) * 0.1;
+            float transitionBrightness = 1.0 - abs(blendFactor - 0.5) * 0.3;
+            return baseBrightness * pulse * transitionBrightness;
+          }
+    
+          vec4 getTileColor(int tileIndex, vec2 uv) {
+            if(tileIndex == 0) return texture2D(uTile0, uv);
+            else if(tileIndex == 1) return texture2D(uTile1, uv);
+            else if(tileIndex == 2) return texture2D(uTile2, uv);
+            else if(tileIndex == 3) return texture2D(uTile3, uv);
+            else if(tileIndex == 4) return texture2D(uTile4, uv);
+            else if(tileIndex == 5) return texture2D(uTile5, uv);
+            else return texture2D(uTile6, uv);
+          }
+    
+          void main() {
+            vec2 worldCoord = vWorldPosition.xy;
+            float scaledStepSize = uStepSize / uWorldScale;
+            vec2 cellCoord = floor(worldCoord / scaledStepSize);
+            vec2 cellPos = fract(worldCoord / scaledStepSize);
+    
+            float swapDuration = 0.4;
+            float swapInterval = 3.0; // Increased interval to reduce frequency of swaps
+    
+            // Modified animation offset calculation for better vertical flow
+            float cellAnimationOffset = getCellAnimationOffset(cellCoord);
+            
+            // Add a wave-like offset based on X coordinate to create diagonal flow patterns
+            // but keep it subtle to maintain primarily vertical movement
+            float waveOffset = sin(cellCoord.x * 0.5) * 0.3;
+            
+            float cellPhase = mod(uSwapTime + cellAnimationOffset + waveOffset, swapInterval);
+            float blendFactor = smoothstep(swapInterval - swapDuration, swapInterval, cellPhase);
+    
+            float cellRandom = hash(cellCoord);
+            float brightness = getBrightness(cellCoord, cellRandom, blendFactor);
+            
+            float numTiles = 7.0;
+            
+            // Modified pattern selection to be more row-dependent
+            float rowBasedRandom = hash(vec2(cellCoord.y * 3.0, floor(cellPhase)));
+            float currentPatternFloat = floor(rowBasedRandom * numTiles);
+            float nextPatternFloat = mod(currentPatternFloat + 1.0, numTiles);
+    
+            int currentPatternIndex = int(currentPatternFloat);
+            int nextPatternIndex = int(nextPatternFloat);
+    
+            // Enhanced vertical movement with reduced horizontal influence
+            vec2 verticalOffset = vec2(0.0, uTime * uVerticalSpeed + cellRandom * 0.05);
+            vec2 animatedCellPos = fract(cellPos + verticalOffset);
+    
+            vec4 currentTileColor = getTileColor(currentPatternIndex, animatedCellPos);
+            vec4 nextTileColor = getTileColor(nextPatternIndex, animatedCellPos);
+            vec4 finalTileColor = mix(currentTileColor, nextTileColor, blendFactor);
+    
+            // Noise coordinates modified to emphasize vertical movement
+            vec2 noiseCoord1 = cellPos * 2.0 + vec2(cellRandom * 2.0, uTime * 0.8);
+            vec2 noiseCoord2 = cellPos * 3.5 + vec2(0.1, 0.9) + vec2(cellRandom * 1.0, -uTime * 0.6);
+    
+            vec4 noise1 = texture2D(uNoiseTexture, noiseCoord1);
+            vec4 noise2 = texture2D(uNoiseTexture, noiseCoord2);
+    
+            float tileFactor = (finalTileColor.r + finalTileColor.g + finalTileColor.b) / 3.0;
+            float noiseFactor = noise1.r * 0.4 + noise2.g * 0.3;
+            float combinedFactor = tileFactor * noiseFactor;
+    
+            vec2 mousePos = uMouse * 0.5 + 0.5;
+            vec2 cellCenter = (cellCoord * scaledStepSize) / 100.0 * 0.5 + 0.5;
+            float mouseDistance = distance(cellCenter, mousePos);
+            float mouseInfluence = 1.0 - smoothstep(0.0, uMouseInfluenceRadius, mouseDistance);
+            mouseInfluence *= uIsMouseMoving;
+    
+            float pulse = 0.95 + sin(uTime * 0.2 + cellRandom * 6.28) * 0.1;
+            brightness *= pulse;
+    
+            vec3 finalColor = uBaseColor;
+            finalColor = mix(finalColor, uHighlightColor, mouseInfluence * 0.7);
+            brightness *= 1.0 + mouseInfluence * 0.7;
+            finalColor *= brightness;
+    
+            float isPattern = step(uPatternThreshold, tileFactor);
+            float alpha = isPattern * combinedFactor * brightness * 1.5;
+    
+            gl_FragColor = vec4(finalColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+    
+      noiseBackground = new THREE.Mesh(planeGeometry, material);
+      noiseBackground.scale.set(1, 1, 1);
+      currentScale = 1;
+      scene.add(noiseBackground);
+    };
 
    function createTileTextures(image) {
-     const tileW = 25;
-     const tileH = 25;
+     const tileW = 50;
+     const tileH = 50;
      const numTiles = 7;
      const textures = [];
 
@@ -879,33 +919,61 @@ export default function NoiseBackground() {
     renderer.render(scene, camera);
   };
 
-   const handleResize = () => {
-     if (!camera || !renderer) return;
-
-     const aspectRatio = window.innerWidth / window.innerHeight;
-     const frustumSize = 100;
-
-     camera.left = frustumSize * aspectRatio / -2;
-     camera.right = frustumSize * aspectRatio / 2;
-     camera.top = frustumSize / 2;
-     camera.bottom = frustumSize / -2;
-
-     camera.updateProjectionMatrix();
-     renderer.setSize(window.innerWidth, window.innerHeight);
-
-     if (material && material.uniforms) {
-       material.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
-       material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
-     }
-
-     if (overlayMaterial && overlayMaterial.uniforms) {
-       overlayMaterial.uniforms.uAspectRatio.value = aspectRatio;
-     }
-
-     if (darkOverlayMaterial && darkOverlayMaterial.uniforms) {
-       darkOverlayMaterial.uniforms.uAspectRatio.value = aspectRatio;
-     }
-   };
+  const handleResize = () => {
+    if (!camera || !renderer) return;
+  
+    const aspectRatio = window.innerWidth / window.innerHeight;
+    const frustumSize = 100;
+  
+    camera.left = frustumSize * aspectRatio / -2;
+    camera.right = frustumSize * aspectRatio / 2;
+    camera.top = frustumSize / 2;
+    camera.bottom = frustumSize / -2;
+  
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  
+    if (material && material.uniforms) {
+      material.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+      material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+    }
+  
+    if (overlayMaterial && overlayMaterial.uniforms) {
+      overlayMaterial.uniforms.uAspectRatio.value = aspectRatio;
+    }
+  
+    if (darkOverlayMaterial && darkOverlayMaterial.uniforms) {
+      darkOverlayMaterial.uniforms.uAspectRatio.value = aspectRatio;
+    }
+  
+    // Update model shader uniforms on resize
+    if (modelShaderMaterialRef.current && modelShaderMaterialRef.current.uniforms) {
+      const uniforms = modelShaderMaterialRef.current.uniforms;
+      
+      // Update mouse world position based on new camera dimensions
+      if (camera && uniforms.uMouseWorldPos) {
+        const halfWidth = (camera.right - camera.left) / 2;
+        const halfHeight = (camera.top - camera.bottom) / 2;
+        const mouseWorldX = mousePositionRef.current.x * halfWidth;
+        const mouseWorldY = mousePositionRef.current.y * halfHeight;
+        const mouseWorldZ = gltfModelRef.current ? gltfModelRef.current.position.z : 0;
+        
+        uniforms.uMouseWorldPos.value.set(mouseWorldX, mouseWorldY, mouseWorldZ);
+      }
+  
+      // Keep tile scale consistent - remove the scaling based on window width
+      // uniforms.uTileScale.value = 100.0 * (window.innerWidth / 1920); // Remove this line
+      // uniforms.uMouseInfluenceRadius.value = 100.0 * (window.innerWidth / 1920); // Remove this line
+      
+      // Keep these values constant instead:
+      uniforms.uTileScale.value = 100.0;
+      uniforms.uMouseInfluenceRadius.value = 150.0; // Larger than background
+      uniforms.uHoverRadius.value = 0.3; // Keep hover radius consistent
+      uniforms.uHoverSmoothness.value = 0.8; // Add smoothness uniform update
+      uniforms.uEdgeBrightness.value = 0.8; // Add edge brightness uniform update
+      uniforms.uBaseBrightness.value = 1.2;
+    }
+  };
 
    window.addEventListener('resize', handleResize);
    init();
